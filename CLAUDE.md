@@ -19,11 +19,11 @@ Ollama (через httpx), pydantic-settings, Docker Compose, pytest + pytest-as
 ## Структура
 ```
 app/
-  bot/        # aiogram: хендлеры клиента, FSM заявки, команды менеджера, клавиатуры
+  bot/        # aiogram: client (вопросы, заявка), menu (кнопки), booking (онлайн-запись), manager (команды)
   rag/        # чтение файлов (PDF/DOCX/TXT/MD), чанкинг, поиск, сборка промпта
   llm/        # интерфейсы LLM/Embedder + реализации Ollama и Fake (для тестов)
   db/         # модели SQLAlchemy, сессия, репозитории
-  services/   # бизнес-логика: индексация, ответ на вопрос, заявки
+  services/   # индексация, ответ на вопрос, заявки, каталог для меню, запись, статистика
   config.py   # Settings (pydantic-settings)
   main.py     # точка входа: миграции → индексация → запуск бота
 migrations/   # Alembic
@@ -37,13 +37,17 @@ tests/
 - Тесты: `docker compose run --rm bot pytest` (или локально `pytest`)
 - Новая миграция: `docker compose run --rm bot alembic revision --autogenerate -m "msg"`
 - Логи бота: `docker compose logs -f bot`
+- Без Docker (этот ПК — WSL/Docker недоступны): `start_bot.bat` или `C:\dtemp\venv\Scripts\python scripts/run_local.py`
+- Линтер: `ruff check . && ruff format --check .`
 
 ## Правила
 - Секреты только в `.env`; в репозитории — `.env.example`.
 - Type hints везде, понятные имена, без лишних зависимостей.
 - LLM и эмбеддинги — только через интерфейсы `app/llm`; в тестах — Fake-реализации, без сети.
-- Ответ — только по найденным чанкам; при низкой релевантности — «не знаю» + кнопка заявки, вопрос пишется в `unanswered_questions`.
-- Команды менеджера (/leads, /unanswered, /reload) доступны только из `MANAGER_CHAT_ID`.
+- Ответ — только по найденным чанкам; при низкой релевантности — «не знаю» + кнопка заявки, вопрос пишется в `questions` с `answered=false`.
+- Команды менеджера (/leads, /bookings, /stats, /unanswered, /reload) доступны только из `MANAGER_CHAT_ID`.
 - Индексация идемпотентна: по хешу файла, неизменённые файлы не переиндексируются.
 - Работаем поэтапно: этап → проверка руками → подтверждение → следующий. Всё, что можно командами, делает Claude сам.
 - Объяснять ключевые решения простыми словами (на русском).
+- Двойную онлайн-запись исключает уникальный индекс в БД, а не только проверка в коде.
+- Кнопочное меню читает те же файлы data/docs, что и RAG — один источник правды.
