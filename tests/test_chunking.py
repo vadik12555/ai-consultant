@@ -30,9 +30,11 @@ def test_paragraphs_are_not_cut_when_they_fit() -> None:
 def test_neighbour_chunks_overlap() -> None:
     text = "\n\n".join(f"Предложение номер {i} про автосервис." for i in range(30))
     chunks = split_into_chunks(text, chunk_size=200, overlap=60)
-    for previous, current in zip(chunks, chunks[1:]):
+    for previous, current in zip(chunks, chunks[1:], strict=False):
         first_line_of_current = current.split("\n")[0]
-        assert first_line_of_current in previous  # начало следующего куска повторяет конец предыдущего
+        assert (
+            first_line_of_current in previous
+        )  # начало следующего куска повторяет конец предыдущего
 
 
 def test_very_long_sentence_is_hard_split() -> None:

@@ -13,7 +13,8 @@ CONTACTS = "📍 Адрес и график"
 WARRANTY = "🛡 Гарантия"
 FAQ = "❓ Частые вопросы"
 ASK = "💬 Задать вопрос"
-CONTACT_MANAGER = "📞 Записаться / менеджер"
+BOOK = "🗓 Онлайн-запись"
+CONTACT_MANAGER = "📞 Менеджер"
 CANCEL = "Отмена"
 
 CONTACT_CALLBACK = "contact_manager"
@@ -39,7 +40,7 @@ def main_menu() -> ReplyKeyboardMarkup:
             [KeyboardButton(text=PRICES), KeyboardButton(text=CONTACTS)],
             [KeyboardButton(text=WARRANTY), KeyboardButton(text=FAQ)],
             [KeyboardButton(text=ASK)],
-            [KeyboardButton(text=CONTACT_MANAGER)],
+            [KeyboardButton(text=BOOK), KeyboardButton(text=CONTACT_MANAGER)],
         ],
         resize_keyboard=True,
         input_field_placeholder="Напишите вопрос или выберите раздел",
@@ -47,7 +48,10 @@ def main_menu() -> ReplyKeyboardMarkup:
 
 
 def _contact_row() -> list[InlineKeyboardButton]:
-    return [InlineKeyboardButton(text="📞 Записаться", callback_data=CONTACT_CALLBACK)]
+    return [
+        InlineKeyboardButton(text="🗓 Записаться", callback_data="bk_start"),
+        InlineKeyboardButton(text="📞 Менеджер", callback_data=CONTACT_CALLBACK),
+    ]
 
 
 def contact_manager_inline() -> InlineKeyboardMarkup:

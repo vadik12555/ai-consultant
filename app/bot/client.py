@@ -37,7 +37,8 @@ async def start(message: Message, state: FSMContext, company_name: str) -> None:
         "📍 подсказать адрес и график работы\n"
         "🛡 рассказать про гарантию\n"
         "💬 ответить на любой вопрос по нашим документам\n"
-        "📞 записать вас — менеджер перезвонит\n\n"
+        "🗓 записать вас онлайн на удобное время\n"
+        "📞 передать вопрос менеджеру — он перезвонит\n\n"
         "Выберите раздел в меню 👇 или просто напишите вопрос.",
         reply_markup=kb.main_menu(),
     )
@@ -103,7 +104,9 @@ async def got_phone(
             question=data.get("question"),
         )
     except InvalidPhoneError:
-        await message.answer("Не похоже на номер телефона. Попробуйте ещё раз, например 89001234567.")
+        await message.answer(
+            "Не похоже на номер телефона. Попробуйте ещё раз, например 89001234567."
+        )
         return
 
     await state.clear()

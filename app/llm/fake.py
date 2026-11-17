@@ -17,7 +17,7 @@ class FakeEmbedder:
     def _vector(self, text: str) -> list[float]:
         vector = [0.0] * self.dim
         for word in text.lower().split():
-            word = word.strip(".,!?:;«»\"()")
+            word = word.strip('.,!?:;«»"()')
             if word:
                 index = int(hashlib.md5(word.encode()).hexdigest(), 16) % self.dim
                 vector[index] += 1.0

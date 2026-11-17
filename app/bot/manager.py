@@ -1,14 +1,23 @@
 """Команды менеджера. Работают только в чате MANAGER_CHAT_ID (фильтр вешается в main.py)."""
 
+from datetime import timedelta
+
 from aiogram import F, Router
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, Message
 
 from app.bot.keyboards import lead_done_button
-from app.db.repositories import LeadRepository, UnansweredRepository
+from app.db.repositories import (
+    BookingRepository,
+    LeadRepository,
+    QuestionRepository,
+    StatsRepository,
+)
+from app.services.booking import TIMEZONE, BookingService, format_day
 from app.services.catalog import Catalog, load_catalog
 from app.services.indexer import IndexerService
 from app.services.leads import format_lead
+from app.services.stats import format_stats
 
 router = Router(name="manager")
 
@@ -40,8 +49,8 @@ async def lead_done(callback: CallbackQuery, lead_repository: LeadRepository) ->
 
 
 @router.message(Command("unanswered"))
-async def unanswered(message: Message, unanswered_repository: UnansweredRepository) -> None:
-    questions = await unanswered_repository.list_recent()
+async def unanswered(message: Message, question_repository: QuestionRepository) -> None:
+    questions = await question_repository.list_unanswered()
     if not questions:
         await message.answer("Вопросов без ответа нет 👍")
         return
@@ -60,3 +69,25 @@ async def reload(message: Message, indexer: IndexerService, catalog: Catalog) ->
     await message.answer(
         f"Готово: файлов {report.indexed}, чанков {report.chunks}, удалено {report.removed}."
     )
+
+
+@router.message(Command("bookings"))
+async def bookings(message: Message, booking_repository: BookingRepository) -> None:
+    upcoming = await booking_repository.list_upcoming(BookingService.now())
+    if not upcoming:
+        await message.answer("Ближайших записей нет")
+        return
+    lines = []
+    for booking in upcoming:
+        starts = booking.starts_at.astimezone(TIMEZONE)
+        lines.append(
+            f"• {format_day(starts.date())} {starts:%H:%M} — {booking.service}, "
+            f"{booking.name}, {booking.phone}"
+        )
+    await message.answer("🗓 Ближайшие записи:\n\n" + "\n".join(lines), parse_mode=None)
+
+
+@router.message(Command("stats"))
+async def stats(message: Message, stats_repository: StatsRepository) -> None:
+    week_ago = BookingService.now() - timedelta(days=7)
+    await message.answer(format_stats(await stats_repository.collect(week_ago)), parse_mode=None)

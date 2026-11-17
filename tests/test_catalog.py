@@ -6,7 +6,9 @@ DOCS = Path(__file__).resolve().parent.parent / "data" / "docs"
 
 
 def test_split_markdown_sections() -> None:
-    title, intro, sections = split_markdown("# Прайс\n\nВступление.\n\n## Шины\n\nА — 1\n\n## ТО\n\nБ — 2")
+    title, intro, sections = split_markdown(
+        "# Прайс\n\nВступление.\n\n## Шины\n\nА — 1\n\n## ТО\n\nБ — 2"
+    )
     assert title == "Прайс"
     assert intro == "Вступление."
     assert [s.title for s in sections] == ["Шины", "ТО"]
@@ -19,7 +21,9 @@ def test_price_lines_split_name_and_price() -> None:
 
 
 def test_split_conditions_by_paragraph_title() -> None:
-    sections = split_conditions("Шапка без точки\n\nГарантия на работы. 6 месяцев.\n\nОплата. После работ.")
+    sections = split_conditions(
+        "Шапка без точки\n\nГарантия на работы. 6 месяцев.\n\nОплата. После работ."
+    )
     assert [s.title for s in sections] == ["Гарантия на работы", "Оплата"]
 
 

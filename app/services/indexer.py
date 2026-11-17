@@ -20,7 +20,7 @@ class IndexReport:
 
 
 class IndexerService:
-    """Синхронизирует папку data/docs с базой: новые/изменённые файлы → чанки → векторы → pgvector."""
+    """Синхронизирует data/docs с базой: новые и изменённые файлы → чанки → векторы → pgvector."""
 
     def __init__(
         self,

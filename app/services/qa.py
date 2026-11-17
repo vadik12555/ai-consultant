@@ -6,8 +6,10 @@ from app.rag.prompt import NO_ANSWER_MARKER, build_system_prompt, build_user_pro
 from app.rag.types import ChunkSearcher, FoundChunk
 
 
-class UnansweredStore(Protocol):
-    async def add(self, telegram_user_id: int, question: str) -> None: ...
+class QuestionLog(Protocol):
+    """Журнал вопросов: нужен для /unanswered и /stats."""
+
+    async def add(self, telegram_user_id: int, question: str, answered: bool) -> None: ...
 
 
 @dataclass
@@ -28,7 +30,7 @@ class QAService:
         embedder: Embedder,
         llm: LLM,
         searcher: ChunkSearcher,
-        unanswered: UnansweredStore,
+        questions: QuestionLog,
         company_name: str,
         top_k: int = 5,
         min_score: float = 0.5,
@@ -36,7 +38,7 @@ class QAService:
         self._embedder = embedder
         self._llm = llm
         self._searcher = searcher
-        self._unanswered = unanswered
+        self._questions = questions
         self._system_prompt = build_system_prompt(company_name)
         self._top_k = top_k
         self._min_score = min_score
@@ -50,11 +52,14 @@ class QAService:
     async def answer(self, telegram_user_id: int, question: str) -> Answer:
         chunks = await self.find_relevant(question)
         if chunks:
-            text = await self._llm.generate(self._system_prompt, build_user_prompt(question, chunks))
+            text = await self._llm.generate(
+                self._system_prompt, build_user_prompt(question, chunks)
+            )
             if NO_ANSWER_MARKER not in text:
                 sources = list(dict.fromkeys(chunk.source for chunk in chunks))
+                await self._questions.add(telegram_user_id, question, answered=True)
                 return Answer(text=text, sources=sources)
 
         # Сюда попадаем, если ничего похожего не нашли или LLM сказала, что ответа нет
-        await self._unanswered.add(telegram_user_id, question)
+        await self._questions.add(telegram_user_id, question, answered=False)
         return Answer(text=None)

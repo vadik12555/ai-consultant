@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, Index, String, Text, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 EMBED_DIM = 1024  # должно совпадать с Settings.embed_dim (bge-m3)
@@ -60,12 +60,45 @@ class Lead(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
-class UnansweredQuestion(Base):
-    """Вопрос без ответа в документах — сигнал, что документы надо дополнить."""
+class Question(Base):
+    """Каждый свободный вопрос клиента. answered=False — сигнал, что документы надо дополнить."""
 
-    __tablename__ = "unanswered_questions"
+    __tablename__ = "questions"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     telegram_user_id: Mapped[int] = mapped_column(BigInteger)
     question: Mapped[str] = mapped_column(Text)
+    answered: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class BookingStatus(StrEnum):
+    ACTIVE = "active"
+    CANCELLED = "cancelled"
+
+
+class Booking(Base):
+    """Онлайн-запись на конкретное время.
+
+    Частичный уникальный индекс не даёт записать двоих на одно время: даже если два клиента
+    нажмут кнопку одновременно, вторую запись отклонит сама база данных.
+    """
+
+    __tablename__ = "bookings"
+    __table_args__ = (
+        Index(
+            "uq_bookings_active_slot",
+            "starts_at",
+            unique=True,
+            postgresql_where=text("status = 'active'"),
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    telegram_user_id: Mapped[int] = mapped_column(BigInteger)
+    name: Mapped[str] = mapped_column(String(100))
+    phone: Mapped[str] = mapped_column(String(20))
+    service: Mapped[str] = mapped_column(String(100))
+    starts_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(20), default=BookingStatus.ACTIVE)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

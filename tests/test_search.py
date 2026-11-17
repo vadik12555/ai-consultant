@@ -1,6 +1,6 @@
 """Тесты поиска и логики «отвечать / честно сказать, что ответа нет».
 
-Вместо Postgres и Ollama используем in-memory поиск и FakeEmbedder/FakeLLM — тесты быстрые и без сети.
+Вместо Postgres и Ollama — in-memory поиск и FakeEmbedder/FakeLLM: тесты быстрые и без сети.
 """
 
 import math
@@ -31,16 +31,17 @@ class InMemorySearcher:
         return sorted(scored, key=lambda c: c.score, reverse=True)[:top_k]
 
 
-class InMemoryUnanswered:
+class InMemoryQuestionLog:
     def __init__(self) -> None:
-        self.questions: list[str] = []
+        self.answered: list[str] = []
+        self.questions: list[str] = []  # без ответа
 
-    async def add(self, telegram_user_id: int, question: str) -> None:
-        self.questions.append(question)
+    async def add(self, telegram_user_id: int, question: str, answered: bool) -> None:
+        (self.answered if answered else self.questions).append(question)
 
 
 def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
     norm = math.sqrt(sum(x * x for x in a)) * math.sqrt(sum(y * y for y in b))
     return dot / norm if norm else 0.0
 
@@ -48,9 +49,11 @@ def _cosine(a: list[float], b: list[float]) -> float:
 async def make_service(llm_answer: str = "Замена масла — 900 рублей.", top_k: int = 5):
     embedder = FakeEmbedder()
     vectors = await embedder.embed(list(DOCS.values()))
-    searcher = InMemorySearcher([(s, t, v) for (s, t), v in zip(DOCS.items(), vectors)])
+    searcher = InMemorySearcher(
+        [(s, t, v) for (s, t), v in zip(DOCS.items(), vectors, strict=True)]
+    )
     llm = FakeLLM(llm_answer)
-    unanswered = InMemoryUnanswered()
+    unanswered = InMemoryQuestionLog()
     service = QAService(embedder, llm, searcher, unanswered, "Мотор", top_k=top_k, min_score=0.3)
     return service, llm, unanswered
 
@@ -79,6 +82,7 @@ async def test_answer_uses_found_chunks_and_returns_sources() -> None:
     assert "price.md" in answer.sources
     assert "900 рублей" in llm.calls[0][1]  # фрагмент документа попал в промпт
     assert unanswered.questions == []
+    assert unanswered.answered == ["сколько стоит замена масла"]
 
 
 async def test_no_relevant_chunks_means_no_llm_call_and_unanswered_saved() -> None:

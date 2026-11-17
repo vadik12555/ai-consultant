@@ -29,7 +29,9 @@ def main() -> None:
         "DATABASE_URL": url,
         "OLLAMA_URL": os.environ.get("OLLAMA_URL", "http://localhost:11434"),
     }
-    subprocess.run([sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, env=env, check=True)
+    subprocess.run(
+        [sys.executable, "-m", "alembic", "upgrade", "head"], cwd=ROOT, env=env, check=True
+    )
     subprocess.run([sys.executable, "-m", "app.main"], cwd=ROOT, env=env, check=True)
 
 

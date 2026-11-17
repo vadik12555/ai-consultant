@@ -73,7 +73,7 @@ def load_catalog(docs_dir: Path) -> Catalog:
 
 
 def price_lines(section: Section) -> list[tuple[str, str]]:
-    """«Замена масла — 900 рублей. Время — 30 минут.» → («Замена масла», «900 рублей. Время — 30 минут.»)."""
+    """«Замена масла — 900 рублей.» → («Замена масла», «900 рублей.»)."""
     items = []
     for line in section.body.splitlines():
         line = line.strip()
